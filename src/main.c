@@ -31,28 +31,23 @@
 #include "src/lib/simulator_settings.h"
 
 /* Internal functions */
-static void configure_simulator(int argc, char **argv);
+static void configure_simulator(int argc, char ** argv);
 static void print_lvgl_version(void);
 static void print_usage(void);
 
 /* contains the name of the selected backend if user
  * has specified one on the command line */
-static char *selected_backend;
+static char * selected_backend;
 
 /* Global simulator settings, defined in lv_linux_backend.c */
 extern simulator_settings_t settings;
-
 
 /**
  * @brief Print LVGL version
  */
 static void print_lvgl_version(void)
 {
-    fprintf(stdout, "%d.%d.%d-%s\n",
-            LVGL_VERSION_MAJOR,
-            LVGL_VERSION_MINOR,
-            LVGL_VERSION_PATCH,
-            LVGL_VERSION_INFO);
+    fprintf(stdout, "%d.%d.%d-%s\n", LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH, LVGL_VERSION_INFO);
 }
 
 /**
@@ -72,54 +67,70 @@ static void print_usage(void)
  * @param argc the count of arguments in argv
  * @param argv The arguments
  */
-static void configure_simulator(int argc, char **argv)
+static void configure_simulator(int argc, char ** argv)
 {
     int opt = 0;
 
     selected_backend = NULL;
     driver_backends_register();
 
-    const char *env_w = getenv("LV_SIM_WINDOW_WIDTH");
-    const char *env_h = getenv("LV_SIM_WINDOW_HEIGHT");
+    const char * env_w = getenv("LV_SIM_WINDOW_WIDTH");
+    const char * env_h = getenv("LV_SIM_WINDOW_HEIGHT");
     /* Default values */
-    settings.window_width = atoi(env_w ? env_w : "800");
+    settings.window_width  = atoi(env_w ? env_w : "800");
     settings.window_height = atoi(env_h ? env_h : "480");
 
     /* Parse the command-line options. */
-    while ((opt = getopt (argc, argv, "b:fmW:H:BVh")) != -1) {
-        switch (opt) {
-        case 'h':
-            print_usage();
-            exit(EXIT_SUCCESS);
-            break;
-        case 'V':
-            print_lvgl_version();
-            exit(EXIT_SUCCESS);
-            break;
-        case 'B':
-            driver_backends_print_supported();
-            exit(EXIT_SUCCESS);
-            break;
-        case 'b':
-            if (driver_backends_is_supported(optarg) == 0) {
-                die("error no such backend: %s\n", optarg);
-            }
-            selected_backend = strdup(optarg);
-            break;
-        case 'W':
-            settings.window_width = atoi(optarg);
-            break;
-        case 'H':
-            settings.window_height = atoi(optarg);
-            break;
-        case ':':
-            print_usage();
-            die("Option -%c requires an argument.\n", optopt);
-            break;
-        case '?':
-            print_usage();
-            die("Unknown option -%c.\n", optopt);
+    while((opt = getopt(argc, argv, "b:fmW:H:BVh")) != -1) {
+        switch(opt) {
+            case 'h':
+                print_usage();
+                exit(EXIT_SUCCESS);
+                break;
+            case 'V':
+                print_lvgl_version();
+                exit(EXIT_SUCCESS);
+                break;
+            case 'B':
+                driver_backends_print_supported();
+                exit(EXIT_SUCCESS);
+                break;
+            case 'b':
+                if(driver_backends_is_supported(optarg) == 0) {
+                    die("error no such backend: %s\n", optarg);
+                }
+                selected_backend = strdup(optarg);
+                break;
+            case 'W': settings.window_width = atoi(optarg); break;
+            case 'H': settings.window_height = atoi(optarg); break;
+            case ':':
+                print_usage();
+                die("Option -%c requires an argument.\n", optopt);
+                break;
+            case '?': print_usage(); die("Unknown option -%c.\n", optopt);
         }
+    }
+}
+
+static float target_temperature = 15.0;
+lv_obj_t * screen;
+lv_obj_t * target_temperature_label;
+
+static void increment_temperature(lv_event_t * e)
+{
+    if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
+        target_temperature++;
+        fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
+        lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
+    }
+}
+
+static void decrement_temperature(lv_event_t * e)
+{
+    if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
+        target_temperature--;
+        fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
+        lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
     }
 }
 
@@ -129,7 +140,7 @@ static void configure_simulator(int argc, char **argv)
  * @param argc the count of arguments in argv
  * @param argv The arguments
  */
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
 
     configure_simulator(argc, argv);
@@ -138,20 +149,59 @@ int main(int argc, char **argv)
     lv_init();
 
     /* Initialize the configured backend */
-    if (driver_backends_init_backend(selected_backend) == -1) {
+    if(driver_backends_init_backend(selected_backend) == -1) {
         die("Failed to initialize display backend");
     }
 
     /* Enable for EVDEV support */
 #if LV_USE_EVDEV
-    if (driver_backends_init_backend("EVDEV") == -1) {
+    if(driver_backends_init_backend("EVDEV") == -1) {
         die("Failed to initialize evdev");
     }
 #endif
 
     /*Create a Demo*/
-    lv_demo_widgets();
-    lv_demo_widgets_start_slideshow();
+    // lv_demo_widgets();
+    // lv_demo_music();
+
+    // lv_demo_gltf();
+    // lv_demo_widgets_start_slideshow();
+
+    // static lv_style_t st;
+    // lv_style_copy($st, &lv_style_plain)
+
+    const int padding_button = 50;
+    const int height_button  = 50;
+    const int width_button   = 50;
+
+    screen = lv_scr_act();
+
+    lv_obj_t * increment_temperature_button = lv_btn_create(screen);
+    lv_obj_align(increment_temperature_button, LV_ALIGN_BOTTOM_RIGHT, -padding_button, -padding_button);
+    lv_obj_set_height(increment_temperature_button, height_button);
+    lv_obj_set_width(increment_temperature_button, width_button);
+    lv_obj_add_event_cb(increment_temperature_button, increment_temperature, LV_EVENT_ALL, NULL);
+
+    lv_obj_t * increment_temperature_label = lv_label_create(increment_temperature_button);
+    lv_label_set_text(increment_temperature_label, "+");
+    lv_obj_set_style_text_font(increment_temperature_label, &lv_font_montserrat_48, 0);
+    lv_obj_center(increment_temperature_label);
+
+    lv_obj_t * decrement_temperature_button = lv_btn_create(screen);
+    lv_obj_align(decrement_temperature_button, LV_ALIGN_BOTTOM_LEFT, padding_button, -padding_button);
+    lv_obj_set_height(decrement_temperature_button, height_button);
+    lv_obj_set_width(decrement_temperature_button, width_button);
+    lv_obj_add_event_cb(decrement_temperature_button, decrement_temperature, LV_EVENT_ALL, NULL);
+
+    lv_obj_t * decrement_temperature_label = lv_label_create(decrement_temperature_button);
+    lv_label_set_text(decrement_temperature_label, "-");
+    lv_obj_set_style_text_font(decrement_temperature_label, &lv_font_montserrat_48, 0);
+    lv_obj_center(decrement_temperature_label);
+
+    target_temperature_label = lv_label_create(screen);
+    lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
+    lv_obj_set_style_text_font(target_temperature_label, &lv_font_montserrat_48, 0);
+    lv_obj_align(target_temperature_label, LV_ALIGN_CENTER, 0, 0);
 
     /* Enter the run loop of the selected backend */
     driver_backends_run_loop();
