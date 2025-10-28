@@ -116,6 +116,10 @@ static float target_temperature = 15.0;
 lv_obj_t * screen;
 lv_obj_t * target_temperature_label;
 
+const int padding_button = 50;
+const int height_button  = 50;
+const int width_button   = 50;
+
 static void increment_temperature(lv_event_t * e)
 {
     if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
@@ -159,21 +163,6 @@ int main(int argc, char ** argv)
         die("Failed to initialize evdev");
     }
 #endif
-
-    /*Create a Demo*/
-    // lv_demo_widgets();
-    // lv_demo_music();
-
-    // lv_demo_gltf();
-    // lv_demo_widgets_start_slideshow();
-
-    // static lv_style_t st;
-    // lv_style_copy($st, &lv_style_plain)
-
-    const int padding_button = 50;
-    const int height_button  = 50;
-    const int width_button   = 50;
-
     screen = lv_scr_act();
 
     lv_obj_t * increment_temperature_button = lv_btn_create(screen);
