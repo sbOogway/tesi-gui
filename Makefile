@@ -2,8 +2,10 @@
 # Makefile
 #
 
-CC              ?= gcc
-CXX             ?= g++
+# CC              ?= gcc
+CC				?= arm-linux-gnueabihf-gcc
+# CXX             ?= g++
+CXX				?= arm-none-eabi-g++
 LVGL_DIR_NAME   ?= lvgl
 LVGL_DIR        ?= .
 
