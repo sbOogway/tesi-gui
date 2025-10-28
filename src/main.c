@@ -122,20 +122,24 @@ const int width_button   = 50;
 
 static void increment_temperature(lv_event_t * e)
 {
-    if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
-        target_temperature++;
-        fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
-        lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
+    if(lv_event_get_code(e) != LV_EVENT_CLICKED) {
+        return;
     }
+    target_temperature++;
+    fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
+    lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
+    
 }
 
 static void decrement_temperature(lv_event_t * e)
 {
-    if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
-        target_temperature--;
-        fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
-        lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
+    if(lv_event_get_code(e) != LV_EVENT_CLICKED) {
+        return;
     }
+    target_temperature--;
+    fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
+    lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
+    
 }
 
 /**
