@@ -151,6 +151,7 @@ static void decrement_temperature(lv_event_t * e)
 int main(int argc, char ** argv)
 {
 
+
     configure_simulator(argc, argv);
 
     /* Initialize LVGL. */
@@ -167,6 +168,12 @@ int main(int argc, char ** argv)
         die("Failed to initialize evdev");
     }
 #endif
+
+
+    lv_display_t* disp = lv_linux_fbdev_create();
+    lv_linux_fbdev_set_file(disp, "/dev/fb0");
+    // lv_linux_fbdev_set_force_refresh(true);
+
     screen = lv_scr_act();
 
     lv_obj_t * increment_temperature_button = lv_btn_create(screen);
