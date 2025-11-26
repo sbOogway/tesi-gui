@@ -12,6 +12,9 @@ set(CMAKE_CXX_COMPILER ${tools}g++)
 set(EVDEV_INCLUDE_DIRS /home/oogway/amel/buildroot/output/staging/usr/include/libevdev-1.0/)
 set(EVDEV_LIBRARIES /home/oogway/amel/buildroot/output/staging/usr/lib/libevdev.so)
 
+set(BUILD_SHARED_LIBS ON)
+
+
 # If necessary, set STAGING_DIR
 # if not work, please try(in shell command): export STAGING_DIR=/home/ubuntu/Your_SDK/out/xxx/openwrt/staging_dir/target
 # set(ENV{STAGING_DIR} "/home/oogway/amel/buildroot/output/staging")
