@@ -9,6 +9,7 @@ demo
 *.obj
 *.elf
 /build/
+/buildt/
 /bin/
 
 # Linker output
