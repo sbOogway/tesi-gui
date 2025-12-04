@@ -5,12 +5,20 @@
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 
-set(tools /home/oogway/amel/buildroot/output/host/bin/arm-buildroot-linux-gnueabihf-)
+# set(tools /home/oogway/amel/buildroot/output/host/bin/arm-buildroot-linux-gnueabihf-)
+
+# set(STAGING_DIR /home/oogway/amel/buildroot/output/staging)
+
+set(tools $ENV{TOOLS})
+set(STAGING_DIR $ENV{STAGING_DIR})
+
+
 set(CMAKE_C_COMPILER ${tools}gcc)
 set(CMAKE_CXX_COMPILER ${tools}g++)
 
-set(EVDEV_INCLUDE_DIRS /home/oogway/amel/buildroot/output/staging/usr/include/libevdev-1.0/)
-set(EVDEV_LIBRARIES /home/oogway/amel/buildroot/output/staging/usr/lib/libevdev.so)
+
+set(EVDEV_INCLUDE_DIRS ${STAGING_DIR}/usr/include/libevdev-1.0/)
+set(EVDEV_LIBRARIES ${STAGING_DIR}/usr/lib/libevdev.so)
 
 set(BUILD_SHARED_LIBS ON)
 
