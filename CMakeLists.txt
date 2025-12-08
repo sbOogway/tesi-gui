@@ -25,6 +25,9 @@ add_subdirectory(lvgl)
 
 if (CONFIG_LV_USE_EVDEV)
     message("Including EVDEV support")
+    
+    message("EVDEV_INCLUDE_DIRS=${EVDEV_INCLUDE_DIRS}")
+    message("EVDEV_LIBRARIES=${EVDEV_LIBRARIES}")
     # find_package(PkgConfig REQUIRED)
     # pkg_check_modules(EVDEV REQUIRED libevdev)
 
