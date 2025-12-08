@@ -21,18 +21,15 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic")
 set(LV_BUILD_SET_CONFIG_OPTS ON CACHE BOOL
     "create CMAKE variables from lv_conf_internal.h" FORCE)
 
-# Find PkgConfig for all package management
-find_package(PkgConfig REQUIRED)
-
 add_subdirectory(lvgl)
 
 if (CONFIG_LV_USE_EVDEV)
     message("Including EVDEV support")
     
-    pkg_check_modules(EVDEV REQUIRED libevdev)
-    
     message("EVDEV_INCLUDE_DIRS=${EVDEV_INCLUDE_DIRS}")
     message("EVDEV_LIBRARIES=${EVDEV_LIBRARIES}")
+    # find_package(PkgConfig REQUIRED)
+    # pkg_check_modules(EVDEV REQUIRED libevdev)
 
     list(APPEND PKG_CONFIG_LIB ${EVDEV_LIBRARIES})
     list(APPEND PKG_CONFIG_INC ${EVDEV_INCLUDE_DIRS})
@@ -43,6 +40,7 @@ endif()
 if (CONFIG_LV_USE_LINUX_DRM)
 
     message("Including DRM support")
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBDRM REQUIRED libdrm)
 
     list(APPEND PKG_CONFIG_LIB ${LIBDRM_LIBRARIES})
@@ -55,6 +53,7 @@ if (CONFIG_LV_USE_LINUX_DRM_GBM_BUFFERS OR CONFIG_LV_LINUX_DRM_USE_EGL)
 
     message("Including GBM support")
 
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBGBM REQUIRED gbm)
 
     list(APPEND PKG_CONFIG_LIB ${LIBGBM_LIBRARIES})
@@ -65,6 +64,7 @@ endif()
 if (CONFIG_LV_USE_LIBINPUT)
     message("Including libinput support")
 
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBINPUT REQUIRED libinput)
 
     list(APPEND PKG_CONFIG_LIB ${LIBINPUT_LIBRARIES})
@@ -75,6 +75,7 @@ endif()
 if (CONFIG_LV_USE_FREETYPE)
     message("Including Freetype support")
 
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBFREETYPE REQUIRED freetype2)
 
     list(APPEND PKG_CONFIG_LIB ${LIBFREETYPE_LIBRARIES})
@@ -85,6 +86,7 @@ endif()
 if (CONFIG_LV_USE_SDL OR CONFIG_LV_USE_DRAW_SDL)
 
     message("Including SDL2 support")
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(SDL2 REQUIRED sdl2)
     pkg_check_modules(SDL2_IMAGE REQUIRED SDL2_image)
 
@@ -99,6 +101,7 @@ if (CONFIG_LV_USE_WAYLAND)
 
     message("Including Wayland support")
 
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
     pkg_check_modules(WAYLAND_CURSOR REQUIRED wayland-cursor)
     pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
@@ -163,6 +166,7 @@ endif()
 
 if (CONFIG_LV_USE_X11)
 
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(X11 REQUIRED x11)
 
     message("Including X11 support")
@@ -184,6 +188,7 @@ endif()
 if (CONFIG_LV_USE_GLFW)
 
     message("Including GLFW support")
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(GLFW3 REQUIRED glfw3)
     pkg_check_modules(GLEW REQUIRED glew)
 
@@ -259,6 +264,7 @@ endif()
 if (CONFIG_LV_USE_GSTREAMER)
 
     message("Including GSTREAMER support")
+    find_package(PkgConfig REQUIRED)
 
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
     pkg_check_modules(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)

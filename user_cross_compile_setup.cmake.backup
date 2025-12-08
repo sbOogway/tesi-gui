@@ -19,15 +19,6 @@ set(CMAKE_CXX_COMPILER $ENV{TOOLS}g++)
 
 set(EVDEV_INCLUDE_DIRS $ENV{STAGE}/usr/include/libevdev-1.0/)
 set(EVDEV_LIBRARIES $ENV{STAGE}/usr/lib/libevdev.so)
-# Configure pkg-config for cross-compilation
-set(ENV{PKG_CONFIG_SYSROOT_DIR} "$ENV{STAGE}")
-set(ENV{PKG_CONFIG_PATH} "$ENV{STAGE}/usr/lib/pkgconfig:$ENV{STAGE}/usr/share/pkgconfig")
-
-# Configure CMake find commands for cross-compilation
-set(CMAKE_FIND_ROOT_PATH "$ENV{STAGE}")
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 # If necessary, set STAGING_DIR
 # if not work, please try(in shell command): export STAGING_DIR=/home/ubuntu/Your_SDK/out/xxx/openwrt/staging_dir/target
