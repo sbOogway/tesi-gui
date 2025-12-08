@@ -5,7 +5,7 @@
 # CC              ?= gcc
 CC				?= arm-linux-gnueabihf-gcc
 # CXX             ?= g++
-CXX				?= arm-none-eabi-g++
+CXX				?= arm-linux-gnueabihf-g++
 LVGL_DIR_NAME   ?= lvgl
 LVGL_DIR        ?= .
 
