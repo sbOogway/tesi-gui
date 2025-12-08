@@ -5,7 +5,7 @@
 
 
 message("$ENV{TOOLS}")
-message("$ENV{STAGING_DIR}")
+message("$ENV{STAGE}")
 
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR arm)
