@@ -14,8 +14,8 @@ set(CMAKE_SYSTEM_PROCESSOR arm)
 set(CMAKE_C_COMPILER $ENV{TOOLS}gcc)
 set(CMAKE_CXX_COMPILER $ENV{TOOLS}g++)
 
-set(EVDEV_INCLUDE_DIRS $ENV{STAGING_DIR}/usr/include/libevdev-1.0/)
-set(EVDEV_LIBRARIES $ENV{STAGING_DIR}/usr/lib/libevdev.so)
+set(EVDEV_INCLUDE_DIRS $ENV{STAGE_DIR}/usr/include/libevdev-1.0/)
+set(EVDEV_LIBRARIES $ENV{STAGE_DIR}/usr/lib/libevdev.so)
 
 # If necessary, set STAGING_DIR
 # if not work, please try(in shell command): export STAGING_DIR=/home/ubuntu/Your_SDK/out/xxx/openwrt/staging_dir/target
