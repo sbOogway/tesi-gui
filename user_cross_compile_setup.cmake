@@ -10,9 +10,12 @@ message("$ENV{STAGE}")
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 
+set(CMAKE_SYSROOT $ENV{STAGE})
+
 # set(toolz /home/oogway/amel/buildroot/output/host/bin/arm-buildroot-linux-gnueabihf-)
 set(CMAKE_C_COMPILER $ENV{TOOLS}gcc)
 set(CMAKE_CXX_COMPILER $ENV{TOOLS}g++)
+
 
 set(EVDEV_INCLUDE_DIRS $ENV{STAGE}/usr/include/libevdev-1.0/)
 set(EVDEV_LIBRARIES $ENV{STAGE}/usr/lib/libevdev.so)
