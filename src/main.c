@@ -22,6 +22,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+
+#include <control-common-0.1.0/control-common/control-common.h>
 
 #include "lvgl/lvgl.h"
 #include "lvgl/demos/lv_demos.h"
@@ -29,6 +32,8 @@
 #include "src/lib/driver_backends.h"
 #include "src/lib/simulator_util.h"
 #include "src/lib/simulator_settings.h"
+
+
 
 /* Internal functions */
 static void configure_simulator(int argc, char ** argv);
@@ -112,23 +117,37 @@ static void configure_simulator(int argc, char ** argv)
     }
 }
 
-static float target_temperature = 15.0;
+
+pid_t pid_control_pid;
+
+const char* target_temperature_format  = "Target T:  %.1f°C";
+const char* current_temperature_format = "Current T: %.1f°C";
+
+static float target_temperature  = 15.0;
+static float current_temperature  = 15.0;
+
 lv_obj_t * screen;
 lv_obj_t * target_temperature_label;
+lv_obj_t * current_temperature_label;
 
 const int padding_button = 50;
 const int height_button  = 50;
 const int width_button   = 50;
+
+void set_target_temperature(float t)
+{
+    fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
+    target_temperature += t;
+    lv_label_set_text_fmt(target_temperature_label, target_temperature_format, target_temperature);
+    kill(pid_control_pid, SIGUSR1);
+}
 
 static void increment_temperature(lv_event_t * e)
 {
     if(lv_event_get_code(e) != LV_EVENT_CLICKED) {
         return;
     }
-    target_temperature++;
-    fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
-    lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
-    
+    set_target_temperature(1);
 }
 
 static void decrement_temperature(lv_event_t * e)
@@ -136,10 +155,21 @@ static void decrement_temperature(lv_event_t * e)
     if(lv_event_get_code(e) != LV_EVENT_CLICKED) {
         return;
     }
-    target_temperature--;
-    fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
-    lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
-    
+    set_target_temperature(-1);
+}
+
+void update_current_temperature()
+{
+    FILE * current_temperature_fd = fopen(CURRENT_TEMPERATURE_FILE, "r");
+    char buf[8];
+    read(fileno(current_temperature_fd), buf, sizeof(buf)-1);
+
+    fprintf(stdout, "debug callback  signal-> %s\n", buf);
+
+    close(fileno(current_temperature_fd));
+
+    float current_temp = atof(buf);
+    lv_label_set_text_fmt(current_temperature_label, current_temperature_format, current_temp);
 }
 
 /**
@@ -151,6 +181,15 @@ static void decrement_temperature(lv_event_t * e)
 int main(int argc, char ** argv)
 {
 
+    write_pid_to_file(TEMP_CONTROL_PID_FILE);
+
+    pid_control_pid = get_pid_from_file(PID_CONTROL_PID_FILE);
+
+    fprintf(stdout, "PID control file %d created...\n", pid_control_pid);
+
+    struct sigaction sa;
+    sa.sa_handler = update_current_temperature;
+    sigaction(SIGUSR1, &sa, NULL);
 
     configure_simulator(argc, argv);
 
@@ -169,12 +208,18 @@ int main(int argc, char ** argv)
     }
 #endif
 
-
-    lv_display_t* disp = lv_linux_fbdev_create();
+#if LV_USE_LINUX_FBDEV
+    lv_display_t * disp = lv_linux_fbdev_create();
     lv_linux_fbdev_set_file(disp, "/dev/fb0");
     // lv_linux_fbdev_set_force_refresh(true);
-
+#endif
     screen = lv_scr_act();
+
+    lv_obj_t * temps_container = lv_obj_create(screen);
+    lv_obj_set_width(temps_container, lv_pct(100));
+    lv_obj_set_height(temps_container, lv_pct(100));
+    lv_obj_set_flex_flow(temps_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(temps_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     lv_obj_t * increment_temperature_button = lv_btn_create(screen);
     lv_obj_align(increment_temperature_button, LV_ALIGN_BOTTOM_RIGHT, -padding_button, -padding_button);
@@ -198,10 +243,15 @@ int main(int argc, char ** argv)
     lv_obj_set_style_text_font(decrement_temperature_label, &lv_font_montserrat_48, 0);
     lv_obj_center(decrement_temperature_label);
 
-    target_temperature_label = lv_label_create(screen);
-    lv_label_set_text_fmt(target_temperature_label, "%.1f°C", target_temperature);
+    target_temperature_label = lv_label_create(temps_container);
+    lv_label_set_text_fmt(target_temperature_label, target_temperature_format, target_temperature);
     lv_obj_set_style_text_font(target_temperature_label, &lv_font_montserrat_48, 0);
     lv_obj_align(target_temperature_label, LV_ALIGN_CENTER, 0, 0);
+
+    current_temperature_label = lv_label_create(temps_container);
+    lv_label_set_text_fmt(current_temperature_label, current_temperature_format, current_temperature);
+    lv_obj_set_style_text_font(current_temperature_label, &lv_font_montserrat_48, 0);
+    lv_obj_align(current_temperature_label, LV_ALIGN_CENTER, 0, 0);
 
     /* Enter the run loop of the selected backend */
     driver_backends_run_loop();

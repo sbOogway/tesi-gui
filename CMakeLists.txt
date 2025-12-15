@@ -26,6 +26,10 @@ find_package(PkgConfig REQUIRED)
 
 add_subdirectory(lvgl)
 
+
+list(APPEND PKG_CONFIG_LIB /usr/local/lib/libcontrol-common.a)
+# list(APPEND PKG_CONFIG_INC /usr/local/include/control-common-0.1.0)
+
 if (CONFIG_LV_USE_EVDEV)
     message("Including EVDEV support")
     
