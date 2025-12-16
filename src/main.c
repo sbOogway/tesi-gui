@@ -24,7 +24,7 @@
 #include <string.h>
 #include <signal.h>
 
-#include <control-common-0.1.0/control-common/control-common.h>
+#include <common-control/common-control.h>
 
 #include "lvgl/lvgl.h"
 #include "lvgl/demos/lv_demos.h"
