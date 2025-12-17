@@ -27,8 +27,18 @@ find_package(PkgConfig REQUIRED)
 add_subdirectory(lvgl)
 
 
+if ("${COMMON_CONTROL_INCLUDE_DIRS}" STREQUAL "")
+    message("common control include dirs empty")
+    set(COMMON_CONTROL_INCLUDE_DIRS /usr/local/include/common-control/)
+    set(COMMON_CONTROL_LIBRARIES /usr/local/lib/libcommon-control.so)
+
+endif()
+
 list(APPEND PKG_CONFIG_LIB ${COMMON_CONTROL_LIBRARIES})
 list(APPEND PKG_CONFIG_INC ${COMMON_CONTROL_INCLUDE_DIRS})
+
+message("${COMMON_CONTROL_INCLUDE_DIRS}")
+message("${COMMON_CONTROL_LIBRARIES}")
 
 if (CONFIG_LV_USE_EVDEV)
     message("Including EVDEV support")
