@@ -17,7 +17,7 @@ set(CMAKE_C_COMPILER $ENV{TOOLS}gcc)
 set(CMAKE_CXX_COMPILER $ENV{TOOLS}g++)
 
 
-set(COMMON_CONTROL_LIBRARIES $ENV{STAGE}/usr/lib/libcommon-control.a)
+set(COMMON_CONTROL_LIBRARIES $ENV{STAGE}/usr/lib/libcommon-control.so)
 set(COMMON_CONTROL_INCLUDE_DIRS $ENV{STAGE}/usr/include/common-control/)
 
 set(EVDEV_INCLUDE_DIRS $ENV{STAGE}/usr/include/libevdev-1.0/)
