@@ -33,8 +33,6 @@
 #include "src/lib/simulator_util.h"
 #include "src/lib/simulator_settings.h"
 
-
-
 /* Internal functions */
 static void configure_simulator(int argc, char ** argv);
 static void print_lvgl_version(void);
@@ -117,14 +115,19 @@ static void configure_simulator(int argc, char ** argv)
     }
 }
 
-
 pid_t pid_control_pid;
 
-const char* target_temperature_format  = "Target T:  %.1f°C";
-const char* current_temperature_format = "Current T: %.1f°C";
+int sensors_count;
+
+char * sensors_format_buffer;
+int max_buffer_size;
+
+const char * target_temperature_format  = "Target T:  %.1f°C";
+const char * current_temperature_format = "Current T: %.1f°C";
+const char * temperature_format         = "%1.f°C";
 
 static float target_temperature  = 15.0;
-static float current_temperature  = 15.0;
+static float current_temperature = 15.0;
 
 lv_obj_t * screen;
 lv_obj_t * target_temperature_label;
@@ -160,16 +163,28 @@ static void decrement_temperature(lv_event_t * e)
 
 void update_current_temperature()
 {
-    FILE * current_temperature_fd = fopen(CURRENT_TEMPERATURE_FILE, "r");
-    char buf[8];
-    read(fileno(current_temperature_fd), buf, sizeof(buf)-1);
+    sensors_format_buffer[0] = '\0';
 
-    fprintf(stdout, "debug callback  signal-> %s\n", buf);
+    for(int i = 0; i < sensors_count; i++) {
+        char buf[64];
+        char temp_buf[32];
+        snprintf(buf, sizeof(buf), "%s/s%d", CURRENT_TEMPERATURE_FILE, i);
+        float sensor_temp = get_float_from_file(buf);
 
-    close(fileno(current_temperature_fd));
+        LOG_DEBUG("%.1f", sensor_temp);
 
-    float current_temp = atof(buf);
-    lv_label_set_text_fmt(current_temperature_label, current_temperature_format, current_temp);
+        snprintf(temp_buf, sizeof(temp_buf), "s%d %.1f°C", i, sensor_temp);
+
+        strncat(sensors_format_buffer, temp_buf, max_buffer_size - strlen(sensors_format_buffer) - 1);
+        LOG_DEBUG(sensors_format_buffer);
+
+        if(i < sensors_count - 1) {
+            strncat(sensors_format_buffer, " ", max_buffer_size - strlen(sensors_format_buffer) - 1);
+        }
+    }
+
+    lv_label_set_text(current_temperature_label, sensors_format_buffer);
+    
 }
 
 /**
@@ -180,12 +195,38 @@ void update_current_temperature()
  */
 int main(int argc, char ** argv)
 {
+    log_init();
+    log_set_level(LOG_DEBUG);
+    log_set_output(LOG_OUTPUT_CONSOLE);
 
-    write_pid_to_file(TEMP_CONTROL_PID_FILE);
+    /**
+     * now we sleep until the pid-control process finishes initialization
+     * of the 1-wire bus.
+     */
+    sigset_t set, old_set;
+    int sig;
+    sigemptyset(&set);
+    sigaddset(&set, SIGUSR1);
+    sigprocmask(SIG_BLOCK, &set, &old_set);
+    LOG_INFO("Waiting synchronously for SIGUSR1...");
+    sigwait(&set, &sig); // Blocks until SIGUSR1 is received
+    LOG_INFO("Received signal %d", sig);
 
+
+
+    system("pgrep pid > " PID_CONTROL_PID_FILE);
     pid_control_pid = get_pid_from_file(PID_CONTROL_PID_FILE);
+    LOG_INFO("PID control file found -> %d ...\n", pid_control_pid);
 
-    fprintf(stdout, "PID control file %d created...\n", pid_control_pid);
+
+    // write_pid_to_file(TEMP_CONTROL_PID_FILE);
+
+    sensors_count = get_int_from_file(NUMBER_OF_SENSORS_FILE);
+    LOG_INFO("found file with sensor number. sensors count -> %d", sensors_count);
+
+
+    max_buffer_size = sensors_count * 32 + 1;
+    sensors_format_buffer = malloc(max_buffer_size);
 
     struct sigaction sa;
     sa.sa_handler = update_current_temperature;
@@ -211,7 +252,6 @@ int main(int argc, char ** argv)
 #if LV_USE_LINUX_FBDEV
     lv_display_t * disp = lv_linux_fbdev_create();
     lv_linux_fbdev_set_file(disp, "/dev/fb0");
-    // lv_linux_fbdev_set_force_refresh(true);
 #endif
     screen = lv_scr_act();
 
@@ -253,8 +293,17 @@ int main(int argc, char ** argv)
     lv_obj_set_style_text_font(current_temperature_label, &lv_font_montserrat_48, 0);
     lv_obj_align(current_temperature_label, LV_ALIGN_CENTER, 0, 0);
 
+    /*
+    we reset the signal mask to original one after ui elements initialization
+    to avoid
+    */
+    sigprocmask(SIG_SETMASK, &old_set, NULL);
+
     /* Enter the run loop of the selected backend */
     driver_backends_run_loop();
 
+    log_cleanup();
+
+    free(sensors_format_buffer);
     return 0;
 }
