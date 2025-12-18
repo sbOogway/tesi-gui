@@ -27,8 +27,18 @@ find_package(PkgConfig REQUIRED)
 add_subdirectory(lvgl)
 
 
+if ("${COMMON_CONTROL_INCLUDE_DIRS}" STREQUAL "")
+    message("common control include dirs empty")
+    set(COMMON_CONTROL_INCLUDE_DIRS /usr/local/include/common-control/)
+    set(COMMON_CONTROL_LIBRARIES /usr/local/lib/libcommon-control.so)
+
+endif()
+
 list(APPEND PKG_CONFIG_LIB ${COMMON_CONTROL_LIBRARIES})
 list(APPEND PKG_CONFIG_INC ${COMMON_CONTROL_INCLUDE_DIRS})
+
+message("${COMMON_CONTROL_INCLUDE_DIRS}")
+message("${COMMON_CONTROL_LIBRARIES}")
 
 if (CONFIG_LV_USE_EVDEV)
     message("Including EVDEV support")
@@ -291,8 +301,8 @@ target_include_directories(lvgl_linux PUBLIC
 # Link LVGL with external dependencies - Modern CMake/CMP0079 allows this
 target_link_libraries(lvgl PUBLIC ${PKG_CONFIG_LIB} m pthread)
 
-add_executable(lvglsim src/main.c ${LV_LINUX_SRC} ${LV_LINUX_BACKEND_SRC})
-target_link_libraries(lvglsim lvgl_linux lvgl)
+add_executable(temp-control src/main.c ${LV_LINUX_SRC} ${LV_LINUX_BACKEND_SRC})
+target_link_libraries(temp-control lvgl_linux lvgl)
 
 
 
@@ -307,4 +317,4 @@ install(TARGETS lvgl_linux
     ARCHIVE DESTINATION lib
 )
 
-add_custom_target(run COMMAND ${EXECUTABLE_OUTPUT_PATH}/lvglsim DEPENDS lvglsim)
+add_custom_target(run COMMAND ${EXECUTABLE_OUTPUT_PATH}/temp-control DEPENDS temp-control)
