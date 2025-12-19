@@ -32,7 +32,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-set(CMAKE_C_FLAGS "-march=armv7-a -mtune=cortex-a9 -mfpu=vfpv3-d16")
+# set(CMAKE_C_FLAGS "-march=armv7-a -mtune=cortex-a9 -mfpu=vfpv3-d16")
 
 # If necessary, set STAGING_DIR
 # if not work, please try(in shell command): export STAGING_DIR=/home/ubuntu/Your_SDK/out/xxx/openwrt/staging_dir/target
