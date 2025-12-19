@@ -184,6 +184,8 @@ void update_current_temperature()
     }
 
     lv_label_set_text(current_temperature_label, sensors_format_buffer);
+
+    LOG_DEBUG("updated current temperature label succesfully");
     
 }
 
