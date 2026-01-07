@@ -51,7 +51,7 @@ extern simulator_settings_t settings;
  */
 static void print_lvgl_version(void)
 {
-    fprintf(stdout, "%d.%d.%d-%s\n", LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH, LVGL_VERSION_INFO);
+    LOG_INFO("%d.%d.%d-%s\n", LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH, LVGL_VERSION_INFO);
 }
 
 /**
@@ -59,9 +59,9 @@ static void print_lvgl_version(void)
  */
 static void print_usage(void)
 {
-    fprintf(stdout, "\nlvglsim [-V] [-B] [-b backend_name] [-W window_width] [-H window_height]\n\n");
-    fprintf(stdout, "-V print LVGL version\n");
-    fprintf(stdout, "-B list supported backends\n");
+    LOG_INFO("\nlvglsim [-V] [-B] [-b backend_name] [-W window_width] [-H window_height]\n\n");
+    LOG_INFO("-V print LVGL version\n");
+    LOG_INFO("-B list supported backends\n");
 }
 
 /**
@@ -118,25 +118,25 @@ static void configure_simulator(int argc, char ** argv)
 
 void handler_sigill_debug(int sig)
 {
-    // Use async-signal-safe functions only
-    const char * msg = "SIGILL (Illegal Instruction) received - attempting backtrace\n";
-    write(STDERR_FILENO, msg, strlen(msg));
+    // // Use async-signal-safe functions only
+    // const char * msg = "SIGILL (Illegal Instruction) received - attempting backtrace\n";
+    // write(STDERR_FILENO, msg, strlen(msg));
 
-    // Try to get backtrace if available (may not be fully async-signal-safe)
-    // but useful for debugging
-    void * array[10];
-    size_t size = backtrace(array, 10);
-    if(size > 0) {
-        const char * bt_msg = "Backtrace:\n";
-        write(STDERR_FILENO, bt_msg, strlen(bt_msg));
-        backtrace_symbols_fd(array, size, STDERR_FILENO);
-    } else {
-        const char * no_bt_msg = "No backtrace available\n";
-        write(STDERR_FILENO, no_bt_msg, strlen(no_bt_msg));
-    }
+    // // Try to get backtrace if available (may not be fully async-signal-safe)
+    // // but useful for debugging
+    // void * array[10];
+    // size_t size = backtrace(array, 10);
+    // if(size > 0) {
+    //     const char * bt_msg = "Backtrace:\n";
+    //     write(STDERR_FILENO, bt_msg, strlen(bt_msg));
+    //     backtrace_symbols_fd(array, size, STDERR_FILENO);
+    // } else {
+    //     const char * no_bt_msg = "No backtrace available\n";
+    //     write(STDERR_FILENO, no_bt_msg, strlen(no_bt_msg));
+    // }
 
-    // Use _exit instead of exit for signal handlers (no cleanup, safer)
-    _exit(1);
+    // // Use _exit instead of exit for signal handlers (no cleanup, safer)
+    // _exit(1);
 }
 
 pid_t pid_control_pid;
@@ -150,8 +150,7 @@ const char * target_temperature_format  = "Target T:  %.1f°C";
 const char * current_temperature_format = "Current T: %.1f°C";
 const char * temperature_format         = "%1.f°C";
 
-static float target_temperature  = 15.0;
-static float current_temperature = 15.0;
+static float target_temperature;
 
 lv_obj_t * screen;
 lv_obj_t * target_temperature_label;
@@ -163,9 +162,10 @@ const int width_button   = 50;
 
 void set_target_temperature(float t)
 {
-    fprintf(stdout, "debug callback -> %.1f\n", target_temperature);
+    LOG_DEBUG("debug callback -> %.1f\n", target_temperature);
     target_temperature += t;
     lv_label_set_text_fmt(target_temperature_label, target_temperature_format, target_temperature);
+    write_float_to_file(TARGET_TEMPERATURE_FILE, target_temperature);
     kill(pid_control_pid, SIGUSR1);
 }
 
@@ -187,6 +187,9 @@ static void decrement_temperature(lv_event_t * e)
 
 void update_current_temperature()
 {
+    target_temperature = get_float_from_file(TARGET_TEMPERATURE_FILE);
+    lv_label_set_text_fmt(target_temperature_label, target_temperature_format, target_temperature);
+    
     sensors_format_buffer[0] = '\0';
 
     for(int i = 0; i < sensors_count; i++) {
@@ -274,7 +277,9 @@ int main(int argc, char ** argv)
     lv_display_t * disp = lv_linux_fbdev_create();
     lv_linux_fbdev_set_file(disp, "/dev/fb0");
 #endif
-    screen = lv_scr_act();
+
+    target_temperature = get_float_from_file(TARGET_TEMPERATURE_FILE);
+    screen             = lv_scr_act();
 
     lv_obj_t * temps_container = lv_obj_create(screen);
     lv_obj_set_width(temps_container, lv_pct(100));
@@ -310,7 +315,8 @@ int main(int argc, char ** argv)
     lv_obj_align(target_temperature_label, LV_ALIGN_CENTER, 0, 0);
 
     current_temperature_label = lv_label_create(temps_container);
-    lv_label_set_text_fmt(current_temperature_label, current_temperature_format, current_temperature);
+    // lv_label_set_text_fmt(current_temperature_label, current_temperature_format, current_temperature);
+    update_current_temperature();
     lv_obj_set_style_text_font(current_temperature_label, &lv_font_montserrat_48, 0);
     lv_obj_align(current_temperature_label, LV_ALIGN_CENTER, 0, 0);
 
