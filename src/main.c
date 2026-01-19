@@ -34,6 +34,25 @@
 #include "src/lib/simulator_util.h"
 #include "src/lib/simulator_settings.h"
 
+#include "src/images/thermometer.c"
+#include "src/images/bullseye.c"
+#include "src/images/minus.c"
+#include "src/images/plus.c"
+#include "src/images/bar_chart.c"
+
+/* Color definitions */
+#define COLOR_GREEN lv_color_make(0xc0, 0xff, 0xc0)
+#define COLOR_RED   lv_color_make(0xff, 0xc0, 0xc0)
+#define COLOR_BLU   lv_color_make(0xc0, 0xc0, 0xff)
+#define COLOR_DARK_GREY lv_color_make(30, 30, 30)
+
+#define COLOR_BACKGROUND COLOR_DARK_GREY 
+#define COLOR_TARGET COLOR_RED
+#define COLOR_SENSOR COLOR_GREEN
+#define COLOR_AVERAGE COLOR_BLU
+#define COLOR_BUTTON_INCREMENT COLOR_GREEN
+#define COLOR_BUTTON_DECREMENT COLOR_RED
+
 /* Internal functions */
 static void configure_simulator(int argc, char ** argv);
 static void print_lvgl_version(void);
@@ -143,28 +162,56 @@ pid_t pid_control_pid;
 
 int sensors_count;
 
-char * sensors_format_buffer;
-int max_buffer_size;
-
-const char * target_temperature_format  = "Target T:  %.1f°C";
+const char * target_temperature_format  = " Target: %.1f°C";
 const char * current_temperature_format = "Current T: %.1f°C";
-const char * temperature_format         = "%1.f°C";
+const char * temperature_format         = "%2.1f°C";
 
 static float target_temperature;
 
 lv_obj_t * screen;
 lv_obj_t * target_temperature_label;
-lv_obj_t * current_temperature_label;
+lv_obj_t ** sensor_labels;
+lv_obj_t * average_label;
 
 const int padding_button = 50;
 const int height_button  = 50;
 const int width_button   = 50;
 
+lv_obj_t * create_card(lv_obj_t * parent, const char * header_text, lv_obj_t ** value_label_ptr, lv_color_t bg_color,
+                       const lv_img_dsc_t * icon_dsc)
+{
+    lv_obj_t * card = lv_obj_create(parent);
+    lv_obj_set_size(card, 270, 150);
+    lv_obj_set_style_bg_color(card, bg_color, LV_PART_MAIN);
+    lv_obj_set_style_border_width(card, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_color(card, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_radius(card, 10, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(card, LV_SCROLLBAR_MODE_OFF);
+
+    lv_obj_t * icon = lv_img_create(card);
+    lv_img_set_src(icon, icon_dsc);
+    lv_obj_align(icon, LV_ALIGN_TOP_LEFT, 5, 10);
+
+    lv_obj_t * header = lv_label_create(card);
+    lv_label_set_text(header, header_text);
+    lv_obj_set_style_text_font(header, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_align(header, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_align(header, LV_ALIGN_TOP_LEFT, 42, 10);
+
+    lv_obj_t * value_label = lv_label_create(card);
+    lv_obj_set_style_text_font(value_label, &lv_font_montserrat_32, 0);
+    lv_obj_set_style_text_align(value_label, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_align(value_label, LV_ALIGN_TOP_LEFT, 10, 50);
+
+    *value_label_ptr = value_label;
+    return card;
+}
+
 void set_target_temperature(float t)
 {
     LOG_DEBUG("debug callback -> %.1f\n", target_temperature);
     target_temperature += t;
-    lv_label_set_text_fmt(target_temperature_label, target_temperature_format, target_temperature);
+    lv_label_set_text_fmt(target_temperature_label, temperature_format, target_temperature);
     write_float_to_file(TARGET_TEMPERATURE_FILE, target_temperature);
     kill(pid_control_pid, SIGUSR1);
 }
@@ -188,31 +235,24 @@ static void decrement_temperature(lv_event_t * e)
 void update_current_temperature()
 {
     target_temperature = get_float_from_file(TARGET_TEMPERATURE_FILE);
-    lv_label_set_text_fmt(target_temperature_label, target_temperature_format, target_temperature);
-    
-    sensors_format_buffer[0] = '\0';
+    lv_label_set_text_fmt(target_temperature_label, temperature_format, target_temperature);
 
+    float sum = 0;
     for(int i = 0; i < sensors_count; i++) {
         char buf[64];
-        char temp_buf[32];
         snprintf(buf, sizeof(buf), "%s/s%d", CURRENT_TEMPERATURE_FILE, i);
         float sensor_temp = get_float_from_file(buf);
 
+        lv_label_set_text_fmt(sensor_labels[i], temperature_format, sensor_temp);
+
+        sum += sensor_temp;
         LOG_DEBUG("%.1f", sensor_temp);
-
-        snprintf(temp_buf, sizeof(temp_buf), "s%d %.1f°C", i, sensor_temp);
-
-        strncat(sensors_format_buffer, temp_buf, max_buffer_size - strlen(sensors_format_buffer) - 1);
-        LOG_DEBUG(sensors_format_buffer);
-
-        if(i < sensors_count - 1) {
-            strncat(sensors_format_buffer, " ", max_buffer_size - strlen(sensors_format_buffer) - 1);
-        }
     }
 
-    lv_label_set_text(current_temperature_label, sensors_format_buffer);
+    float avg = sum / sensors_count;
+    lv_label_set_text_fmt(average_label, temperature_format, avg);
 
-    LOG_DEBUG("updated current temperature label succesfully");
+    LOG_DEBUG("updated current temperature labels successfully");
 }
 
 /**
@@ -249,9 +289,6 @@ int main(int argc, char ** argv)
     sensors_count = get_int_from_file(NUMBER_OF_SENSORS_FILE);
     LOG_INFO("found file with sensor number. sensors count -> %d", sensors_count);
 
-    max_buffer_size       = sensors_count * 32 + 1;
-    sensors_format_buffer = malloc(max_buffer_size);
-
     struct sigaction sa;
     sa.sa_handler = update_current_temperature;
     sigaction(SIGUSR1, &sa, NULL);
@@ -281,44 +318,54 @@ int main(int argc, char ** argv)
     target_temperature = get_float_from_file(TARGET_TEMPERATURE_FILE);
     screen             = lv_scr_act();
 
-    lv_obj_t * temps_container = lv_obj_create(screen);
-    lv_obj_set_width(temps_container, lv_pct(100));
-    lv_obj_set_height(temps_container, lv_pct(100));
-    lv_obj_set_flex_flow(temps_container, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(temps_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_t * cards_container = lv_obj_create(screen);
+    lv_obj_set_size(cards_container, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(cards_container, COLOR_BACKGROUND, LV_PART_MAIN);
+    lv_obj_align(cards_container, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_set_flex_flow(cards_container, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_flex_align(cards_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+
+    create_card(cards_container, "Target Temperature", &target_temperature_label, COLOR_TARGET, &bullseye);
+
+    sensor_labels = malloc(sensors_count * sizeof(lv_obj_t *));
+
+    for(int i = 0; i < sensors_count; i++) {
+        char header[25];
+        snprintf(header, sizeof(header), "Sensor %d Temperature", i);
+        create_card(cards_container, header, &sensor_labels[i], COLOR_SENSOR, &thermometer);
+    }
+
+    create_card(cards_container, "Average Temperature", &average_label, COLOR_AVERAGE, &bar_chart);
+
+    update_current_temperature();
 
     lv_obj_t * increment_temperature_button = lv_btn_create(screen);
     lv_obj_align(increment_temperature_button, LV_ALIGN_BOTTOM_RIGHT, -padding_button, -padding_button);
     lv_obj_set_height(increment_temperature_button, height_button);
     lv_obj_set_width(increment_temperature_button, width_button);
+    lv_obj_set_style_radius(increment_temperature_button, 10, 0);
+    lv_obj_set_style_bg_color(increment_temperature_button, COLOR_BUTTON_INCREMENT, 0);
+    lv_obj_set_style_border_width(increment_temperature_button, 2, 0);
+    lv_obj_set_style_border_color(increment_temperature_button, lv_color_black(), 0);
     lv_obj_add_event_cb(increment_temperature_button, increment_temperature, LV_EVENT_ALL, NULL);
 
-    lv_obj_t * increment_temperature_label = lv_label_create(increment_temperature_button);
-    lv_label_set_text(increment_temperature_label, "+");
-    lv_obj_set_style_text_font(increment_temperature_label, &lv_font_montserrat_48, 0);
-    lv_obj_center(increment_temperature_label);
+    lv_obj_t * increment_icon = lv_img_create(increment_temperature_button);
+    lv_img_set_src(increment_icon, &plus);
+    lv_obj_center(increment_icon);
 
     lv_obj_t * decrement_temperature_button = lv_btn_create(screen);
     lv_obj_align(decrement_temperature_button, LV_ALIGN_BOTTOM_LEFT, padding_button, -padding_button);
     lv_obj_set_height(decrement_temperature_button, height_button);
     lv_obj_set_width(decrement_temperature_button, width_button);
+    lv_obj_set_style_radius(decrement_temperature_button, 10, 0);
+    lv_obj_set_style_bg_color(decrement_temperature_button, COLOR_BUTTON_DECREMENT, 0);
+    lv_obj_set_style_border_width(decrement_temperature_button, 2, 0);
+    lv_obj_set_style_border_color(decrement_temperature_button, lv_color_black(), 0);
     lv_obj_add_event_cb(decrement_temperature_button, decrement_temperature, LV_EVENT_ALL, NULL);
 
-    lv_obj_t * decrement_temperature_label = lv_label_create(decrement_temperature_button);
-    lv_label_set_text(decrement_temperature_label, "-");
-    lv_obj_set_style_text_font(decrement_temperature_label, &lv_font_montserrat_48, 0);
-    lv_obj_center(decrement_temperature_label);
-
-    target_temperature_label = lv_label_create(temps_container);
-    lv_label_set_text_fmt(target_temperature_label, target_temperature_format, target_temperature);
-    lv_obj_set_style_text_font(target_temperature_label, &lv_font_montserrat_48, 0);
-    lv_obj_align(target_temperature_label, LV_ALIGN_CENTER, 0, 0);
-
-    current_temperature_label = lv_label_create(temps_container);
-    // lv_label_set_text_fmt(current_temperature_label, current_temperature_format, current_temperature);
-    update_current_temperature();
-    lv_obj_set_style_text_font(current_temperature_label, &lv_font_montserrat_48, 0);
-    lv_obj_align(current_temperature_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_t * decrement_icon = lv_img_create(decrement_temperature_button);
+    lv_img_set_src(decrement_icon, &minus);
+    lv_obj_center(decrement_icon);
 
     /*
     we reset the signal mask to original one after ui elements initialization
@@ -338,6 +385,6 @@ int main(int argc, char ** argv)
 
     log_cleanup();
 
-    free(sensors_format_buffer);
+    free(sensor_labels);
     return 0;
 }
