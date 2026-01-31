@@ -213,7 +213,7 @@ void set_target_temperature(float t)
     target_temperature += t;
     lv_label_set_text_fmt(target_temperature_label, temperature_format, target_temperature);
     write_float_to_file(TARGET_TEMPERATURE_FILE, target_temperature);
-    kill(pid_control_pid, SIGUSR1);
+    // kill(pid_control_pid, SIGUSR1);
 }
 
 static void increment_temperature(lv_event_t * e)
@@ -280,9 +280,9 @@ int main(int argc, char ** argv)
     sigwait(&set, &sig); // Blocks until SIGUSR1 is received
     LOG_INFO("Received signal %d", sig);
 
-    system("pgrep " PID_CONTROL_PROCESS_NAME " > " PID_CONTROL_PID_FILE);
-    pid_control_pid = get_pid_from_file(PID_CONTROL_PID_FILE);
-    LOG_INFO("PID control file found -> %d ...\n", pid_control_pid);
+    // system("pgrep " PID_CONTROL_PROCESS_NAME " > " PID_CONTROL_PID_FILE);
+    // pid_control_pid = get_pid_from_file(PID_CONTROL_PID_FILE);
+    // LOG_INFO("PID control file found -> %d ...\n", pid_control_pid);
 
     // write_pid_to_file(TEMP_CONTROL_PID_FILE);
 
