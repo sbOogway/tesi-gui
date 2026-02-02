@@ -137,25 +137,6 @@ static void configure_simulator(int argc, char ** argv)
 
 void handler_sigill_debug(int sig)
 {
-    // // Use async-signal-safe functions only
-    // const char * msg = "SIGILL (Illegal Instruction) received - attempting backtrace\n";
-    // write(STDERR_FILENO, msg, strlen(msg));
-
-    // // Try to get backtrace if available (may not be fully async-signal-safe)
-    // // but useful for debugging
-    // void * array[10];
-    // size_t size = backtrace(array, 10);
-    // if(size > 0) {
-    //     const char * bt_msg = "Backtrace:\n";
-    //     write(STDERR_FILENO, bt_msg, strlen(bt_msg));
-    //     backtrace_symbols_fd(array, size, STDERR_FILENO);
-    // } else {
-    //     const char * no_bt_msg = "No backtrace available\n";
-    //     write(STDERR_FILENO, no_bt_msg, strlen(no_bt_msg));
-    // }
-
-    // // Use _exit instead of exit for signal handlers (no cleanup, safer)
-    // _exit(1);
 }
 
 pid_t pid_control_pid;
@@ -213,7 +194,6 @@ void set_target_temperature(float t)
     target_temperature += t;
     lv_label_set_text_fmt(target_temperature_label, temperature_format, target_temperature);
     write_float_to_file(TARGET_TEMPERATURE_FILE, target_temperature);
-    // kill(pid_control_pid, SIGUSR1);
 }
 
 static void increment_temperature(lv_event_t * e)
@@ -279,12 +259,6 @@ int main(int argc, char ** argv)
     LOG_INFO("Waiting synchronously for SIGUSR1...");
     sigwait(&set, &sig); // Blocks until SIGUSR1 is received
     LOG_INFO("Received signal %d", sig);
-
-    // system("pgrep " PID_CONTROL_PROCESS_NAME " > " PID_CONTROL_PID_FILE);
-    // pid_control_pid = get_pid_from_file(PID_CONTROL_PID_FILE);
-    // LOG_INFO("PID control file found -> %d ...\n", pid_control_pid);
-
-    // write_pid_to_file(TEMP_CONTROL_PID_FILE);
 
     sensors_count = get_int_from_file(NUMBER_OF_SENSORS_FILE);
     LOG_INFO("found file with sensor number. sensors count -> %d", sensors_count);
@@ -371,14 +345,14 @@ int main(int argc, char ** argv)
     we reset the signal mask to original one after ui elements initialization
     to avoid
     */
-    sigprocmask(SIG_SETMASK, &old_set, NULL);
+    // sigprocmask(SIG_SETMASK, &old_set, NULL);
 
-    // Register SIGILL handler with sigaction for better reliability
-    struct sigaction sa_sigill;
-    sigemptyset(&sa_sigill.sa_mask);
-    sa_sigill.sa_handler = handler_sigill_debug;
-    sa_sigill.sa_flags   = SA_RESETHAND; // Reset handler to default after first call
-    sigaction(SIGILL, &sa_sigill, NULL);
+    // // Register SIGILL handler with sigaction for better reliability
+    // struct sigaction sa_sigill;
+    // sigemptyset(&sa_sigill.sa_mask);
+    // sa_sigill.sa_handler = handler_sigill_debug;
+    // sa_sigill.sa_flags   = SA_RESETHAND; // Reset handler to default after first call
+    // sigaction(SIGILL, &sa_sigill, NULL);
 
     /* Enter the run loop of the selected backend */
     driver_backends_run_loop();
